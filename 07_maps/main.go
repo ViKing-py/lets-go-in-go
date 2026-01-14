@@ -3,87 +3,83 @@ package main
 import "fmt"
 
 // ---------------------------------------------------------
-// TOPIC: Arrays vs Slices
+// TOPIC: Maps (Hash Tables / Dictionaries)
 // ---------------------------------------------------------
 
 func main() {
-	// ==========================================
-	// PART 1: ARRAYS (Fixed Size)
-	// ==========================================
-	fmt.Println("--- ARRAYS ---")
+	// 1. CREATING MAPS
+	// A map maps keys to values.
+	// Syntax: map[KeyType]ValueType
 
-	// Declaration: [Size]Type
-	// The size is part of the type! [2]int and [3]int are different types.
-	var arr [3]int
-	arr[0] = 10
-	arr[1] = 20
-	arr[2] = 30
-	// arr[3] = 40 // COMPILE ERROR: Index out of bounds
+	// Method A: Using make() (Best for empty maps)
+	// We must initialize the map before writing to it.
+	userRoles := make(map[string]string)
 
-	fmt.Printf("Array: %v | Len: %d\n", arr, len(arr))
+	// Method B: Map Literal (Best if you have initial data)
+	currencies := map[string]string{
+		"USD": "US Dollar",
+		"EUR": "Euro",
+		"UAH": "Ukrainian Hryvnia", // Note the trailing comma!
+	}
 
-	// Arrays are "Value Types".
-	// Assigning an array to a new variable COPIES the whole data.
-	arrCopy := arr
-	arrCopy[0] = 999
+	fmt.Println("Initial currencies:", currencies)
 
-	fmt.Println("Original Array:", arr)     // [10 20 30] (Unchanged)
-	fmt.Println("Copied Array:  ", arrCopy) // [999 20 30]
+	// 2. ADDING & UPDATING KEYS
+	// If the key doesn't exist, it is added.
+	// If the key exists, the value is overwritten.
+	userRoles["admin"] = "Super User"
+	userRoles["editor"] = "Content Manager"
 
-	// ==========================================
-	// PART 2: SLICES (Dynamic Wrapper)
-	// ==========================================
-	fmt.Println("\n--- SLICES ---")
+	fmt.Println("User Roles:", userRoles)
 
-	// Declaration: []Type (No size inside brackets)
-	// A slice is a "window" or a "view" onto an underlying array.
-	var slice []int = []int{10, 20, 30}
+	// 3. RETRIEVING VALUES & CHECKING EXISTENCE
+	// This is specific to Go.
 
-	// APPENDING
-	// Use 'append' to add elements. It handles memory resizing automatically.
-	// You MUST reassign the result back to the slice variable.
-	slice = append(slice, 40)
-	slice = append(slice, 50)
+	// If we ask for a key that DOES NOT exist, Go returns the "zero value"
+	// for that type (e.g., "" for string, 0 for int).
+	role := userRoles["guest"]
+	fmt.Printf("Role for guest: '%s' (This is empty string, not nil)\n", role)
 
-	fmt.Printf("Slice: %v\n", slice)
+	// The "Comma Ok" Idiom
+	// To know if a key truly exists or if it's just a zero value, we use a second return variable.
+	// val, ok := map[key]
 
-	// LEN vs CAP
-	// len: How many elements are in the slice right now.
-	// cap: How many elements fit in the underlying array before Go needs to create a new, bigger one.
-	fmt.Printf("Len: %d | Cap: %d\n", len(slice), cap(slice))
+	val, ok := userRoles["viewer"]
+	if ok {
+		fmt.Printf("Viewer exists: %s\n", val)
+	} else {
+		fmt.Println("Key 'viewer' does not exist in the map.")
+	}
 
-	// ==========================================
-	// PART 3: SLICING (Creating a sub-slice)
-	// ==========================================
-	fmt.Println("\n--- SLICING SYNTAX ---")
+	// 4. DELETING KEYS
+	// We use the built-in delete() function.
+	delete(currencies, "USD")
+	fmt.Println("Currencies after deletion:", currencies)
 
-	// syntax: slice[start_inclusive : end_exclusive]
-	numbers := []int{0, 1, 2, 3, 4, 5}
-
-	subSlice := numbers[1:4] // Grabs indices 1, 2, and 3
-	fmt.Printf("Original: %v\n", numbers)
-	fmt.Printf("SubSlice[1:4]: %v\n", subSlice)
-
-	// ---------------------------------------------------------
-	// ⚠️ COMMON PITFALLS (Crucial!)
-	// ---------------------------------------------------------
-	fmt.Println("\n--- PITFALLS ---")
-
-	// PITFALL 1: Slices share the same memory (Backing Array)
-	// Unlike arrays, slices are cheap references.
-	// If you modify a sub-slice, the original slice changes too!
-
-	subSlice[0] = 999 // We modify the sub-slice...
-
-	fmt.Println("After modifying subSlice:")
-	fmt.Println("SubSlice:", subSlice) // [999 2 3]
-	fmt.Println("Original:", numbers)  // [0 999 2 3 4 5] -> CHANGED! ⚠️
-
-	// FIX for Pitfall 1:
-	// If you need independent data, use 'copy()' or construct a new slice.
-
-	// PITFALL 2: Append return value
-	// Beginners often write: append(slice, 10)
-	// This does nothing to 'slice' if the capacity changes.
-	// ALWAYS write: slice = append(slice, 10)
+	// If you delete a key that doesn't exist, nothing happens (no error).
+	delete(currencies, "NOT_EXISTING") // Safe operation
 }
+
+// ---------------------------------------------------------
+// ⚠️ COMMON PITFALLS
+// ---------------------------------------------------------
+//
+// 1. The NIL Map Panic (CRITICAL):
+//    Declaring a map without initializing it creates a "nil" map.
+//    You can read from a nil map, but writing to it causes a runtime PANIC.
+//
+//    WRONG:
+//    var m map[string]int
+//    m["key"] = 1 // PANIC! "assignment to entry in nil map"
+//
+//    CORRECT:
+//    m := make(map[string]int)
+//    m["key"] = 1
+//
+// 2. Random Iteration Order:
+//    When you loop over a map using "range", the order is NOT guaranteed.
+//    It is randomized intentionally by Go to prevent developers from relying on order.
+//
+// 3. Maps are Reference Types:
+//    If you pass a map to a function and modify it inside that function,
+//    the changes persist in the original map.
