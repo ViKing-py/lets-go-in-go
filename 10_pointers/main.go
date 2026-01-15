@@ -3,108 +3,86 @@ package main
 import "fmt"
 
 // ---------------------------------------------------------
-// TOPIC: Functions
+// TOPIC: Pointers
 // ---------------------------------------------------------
 
-// 1. BASIC PARAMETERS & TYPE OMISSION
-// Standard function: takes arguments, returns a value.
-// Note: When two or more consecutive named parameters share a type,
-// you can omit the type from all but the last one.
-// (x int, y int) -> (x, y int)
-func add(x, y int) int {
-	return x + y
-}
-
-// 2. MULTIPLE RETURN VALUES
-// Go functions can return any number of results.
-// This is often used to return a result AND an error (or a boolean check).
-func divide(dividend, divisor int) (int, int) {
-	quotient := dividend / divisor
-	remainder := dividend % divisor
-	return quotient, remainder
-}
-
-// 3. NAMED RETURN VALUES (NAKED RETURN)
-// Return values can be named at the top of the function.
-// They are treated as variables defined at the start of the function.
-// A "return" statement without arguments returns the named values.
-func split(sum int) (x, y int) {
-	x = sum * 4 / 9
-	y = sum - x
-	// "return" without arguments is a "naked" return.
-	// It returns the current values of x and y automatically.
-	return
-}
-
-// 4. VARIADIC FUNCTIONS
-// A function that can be called with any number of trailing arguments.
-// Inside the function, the param 'nums' becomes a slice of ints ([]int).
-func sumAll(nums ...int) int {
-	fmt.Printf("Received %d numbers to sum. Type of nums: %T\n", len(nums), nums)
-
-	total := 0
-	for _, num := range nums {
-		total += num
-	}
-	return total
-}
-
 func main() {
-	fmt.Println("--- 1. Basic Functions ---")
-	result := add(42, 13)
-	fmt.Println("Sum:", result)
+	// 1. BASICS: Address (&) and Type (*)
+	fmt.Println("--- 1. Basics ---")
 
-	fmt.Println("\n--- 2. Multiple Return Values ---")
-	// We capture both return values into variables q and r
-	q, r := divide(17, 5)
-	fmt.Printf("17 divided by 5 is %d with a remainder of %d\n", q, r)
+	var age int = 25
+	fmt.Println("Original Value:", age)
 
-	// ignoring one value using blank identifier "_"
-	q2, _ := divide(10, 2)
-	fmt.Println("Only interested in quotient:", q2)
+	// The '&' operator generates a pointer to its operand.
+	// 'ptr' holds the memory address where 'age' is stored.
+	// The type of 'ptr' is *int (pointer to an integer).
+	var ptr *int = &age
 
-	fmt.Println("\n--- 3. Named (Naked) Returns ---")
-	x, y := split(17)
-	fmt.Printf("Split 17 into: %d and %d\n", x, y)
+	fmt.Println("Address (ptr):", ptr)
 
-	fmt.Println("\n--- 4. Variadic Functions ---")
-	// Call with individual arguments
-	t1 := sumAll(1, 2)
-	t2 := sumAll(10, 20, 30, 40, 50)
+	// 2. DEREFERENCING (*)
+	// The '*' operator denotes the pointer's underlying value.
+	// This is often called "dereferencing".
+	fmt.Println("Value via pointer (*ptr):", *ptr)
 
-	fmt.Println("Total 1:", t1)
-	fmt.Println("Total 2:", t2)
+	// We can change the value at that address through the pointer.
+	*ptr = 30
+	fmt.Println("New Value (age) after changing *ptr:", age) // age is now 30
 
-	// Call with a slice
-	// If you already have a slice, use "..." to spread it into the function
-	numbers := []int{100, 200, 300}
-	t3 := sumAll(numbers...)
-	fmt.Println("Total from slice:", t3)
+	// 3. PASS BY VALUE VS PASS BY POINTER
+	fmt.Println("\n--- 2. Function Arguments ---")
+
+	number := 100
+
+	// Case A: Pass by Value (Copy)
+	modifyValue(number)
+	fmt.Println("After modifyValue:", number) // Remains 100
+
+	// Case B: Pass by Pointer (Reference)
+	modifyPointer(&number)
+	fmt.Println("After modifyPointer:", number) // Becomes 999
+
+	// 4. NIL POINTERS
+	fmt.Println("\n--- 3. Nil Pointers ---")
+
+	// The zero value of a pointer is nil.
+	var emptyPtr *int
+	fmt.Println("Value of emptyPtr:", emptyPtr)
+
+	// Safe check before usage:
+	if emptyPtr == nil {
+		fmt.Println("Pointer is nil, skipping dereference.")
+	}
+}
+
+// modifyValue receives a COPY of the integer.
+// Changing 'n' here does not affect the original variable.
+func modifyValue(n int) {
+	n = 0
+}
+
+// modifyPointer receives the MEMORY ADDRESS of the integer.
+// Changing '*n' here changes the original variable.
+func modifyPointer(n *int) {
+	*n = 999
 }
 
 // ---------------------------------------------------------
 // ⚠️ COMMON PITFALLS
 // ---------------------------------------------------------
 //
-// 1. Naked Returns readability:
-//    While named returns are cool, using naked returns in long functions
-//    can harm readability. You don't know exactly what is being returned
-//    unless you scroll back up to the signature.
-//    BEST PRACTICE: Use them only in short functions.
+// 1. Dereferencing a Nil Pointer (The "Panic"):
+//    If you try to read or write to a nil pointer, the program crashes.
 //
-// 2. Unused return values:
-//    If a function returns multiple values, you MUST handle all of them.
-//    You cannot assign 2 return values to 1 variable.
+//    var p *int // p is nil
+//    *p = 10    // CRASH! runtime error: invalid memory address or nil pointer dereference
 //
-//    WRONG:
-//    val := divide(10, 2) // Error: divide returns 2 values
+//    ALWAYS check if a pointer is nil if you are unsure if it has been initialized.
 //
-//    CORRECT (if you want to ignore one):
-//    val, _ := divide(10, 2)
+// 2. Confusing the Asterisk (*):
+//    - In a type declaration (var p *int), '*' means "this is a pointer type".
+//    - In code logic (*p = 10), '*' means "read/write the value at this address".
 //
-// 3. Variadic Arguments vs Slices:
-//    You cannot pass a slice directly to a variadic function without unpacking.
-//
-//    nums := []int{1, 2, 3}
-//    sumAll(nums)    // Error: cannot use nums (type []int) as type int
-//    sumAll(nums...) // Correct: expands the slice into individual arguments
+// 3. No Pointer Arithmetic:
+//    Unlike C or C++, Go does not allow you to do things like 'ptr++' to move
+//    to the next memory slot. Go prioritizes safety over this flexibility.
